@@ -1,0 +1,187 @@
+import {readFileSync, writeFileSync} from 'fs';
+
+export default function parse(filename) {
+  const data = readFileSync(filename);
+
+  const header = data.slice(0, 4).toString('utf-8');
+  const v_major = data.readUInt16BE(4);
+  const v_minor = data.readUInt16BE(6);
+  const chunk_count = data.readUInt32BE(8);
+
+  if (header !== 'ASEF' || v_major !== 1 || v_minor !== 0) {
+    throw new Error('Invalid ASE file format');
+  }
+
+  const chunks = [];
+  let offset = 12;
+
+  while (offset < data.length) {
+    const chunkType = data.slice(offset, offset + 2);
+    offset += 2;
+
+    if (chunkType.equals(Buffer.from([0x00, 0x01]))) {
+      const colorChunk = readColorChunk(data, offset);
+      chunks.push(colorChunk);
+      offset += colorChunk.length;
+    } else if (chunkType.equals(Buffer.from([0xC0, 0x01]))) {
+      const paletteChunk = readPaletteChunk(data, offset);
+      chunks.push(paletteChunk);
+      offset += paletteChunk.length;
+    } else if (chunkType.equals(Buffer.from([0xC0, 0x02]))) {
+      // End of palette, do nothing
+      offset += 4; // Skip 4 bytes
+    } else {
+      throw new Error('Malformed ASE file');
+    }
+  }
+
+  return chunks;
+}
+
+function readColorChunk(data, offset) {
+  const length = data.readUInt32BE(offset);
+  const titleLength = data.readUInt16BE(offset + 4) * 2;
+  const title = data.slice(offset + 6, offset + 6 + titleLength).toString('utf-16le').replace(/\0/g, '');
+  const colorData = data.slice(offset + 6 + titleLength, offset + length);
+
+  const colorMode = colorData.slice(0, 4).toString('utf-8').trim();
+  const colorValues = readColorValues(colorMode, colorData.slice(4, -2));
+  const swatchTypeIndex = data.readInt16BE(offset + length - 2);
+  const swatchTypes = ['Global', 'Spot', 'Process'];
+  const swatchType = swatchTypes[swatchTypeIndex];
+
+  return {
+    name: title,
+    type: swatchType,
+    data: {
+      mode: colorMode,
+      values: colorValues,
+    },
+  };
+}
+
+function readPaletteChunk(data, offset) {
+  const length = data.readUInt32BE(offset);
+  const titleLength = data.readUInt16BE(offset + 4) * 2;
+  const title = data.slice(offset + 6, offset + 6 + titleLength).toString('utf-16be').replace(/\0/g, '');
+
+  const palette = {
+    name: title,
+    type: 'Color Group',
+    swatches: [],
+  };
+
+  let colorOffset = offset + 6 + titleLength;
+  while (colorOffset < offset + length - 8) {
+    const colorChunk = readColorChunk(data, colorOffset);
+    palette.swatches.push(colorChunk);
+    colorOffset += colorChunk.length;
+  }
+
+  return palette;
+}
+
+function readColorValues(colorMode, data) {
+  const fmt = {
+    'RGB': ['f', 'f', 'f'],
+    'Gray': ['f'],
+    'CMYK': ['f', 'f', 'f', 'f'],
+    'LAB': ['f', 'f', 'f'],
+  };
+
+  return unpack(fmt[colorMode], data);
+}
+
+function unpack(format, data) {
+  let offset = 0;
+  const result = [];
+
+  for (const spec of format) {
+    const size = spec === 'f' ? 4 : 2;
+    const value = spec === 'f' ? data.readFloatLE(offset) : data.readInt16BE(offset);
+    result.push(value);
+    offset += size;
+  }
+
+  return result;
+}
+
+// Rest of the code remains the same
+// ...
+
+
+// Note: The following Node.js code uses the `struct` library. You can install it using: `npm install struct`.
+//const struct = require('struct');
+
+function dump(obj, fp) {
+  const data = dumps(obj);
+  writeFileSync(fp, data, 'binary');
+}
+
+function dumps(obj) {
+  const header = Buffer.from('ASEF');
+  const v_major = 1;
+  const v_minor = 0;
+  const chunk_count = chunkCount(obj);
+
+  const head = struct.pack('!4sHHI', header, v_major, v_minor, chunk_count);
+  const body = Buffer.concat(obj.map(chunkForObject));
+  return Buffer.concat([head, body]);
+}
+
+function chunkCount(swatch) {
+  if (Array.isArray(swatch)) {
+    return swatch.reduce((count, item) => count + chunkCount(item), 0);
+  } else if (swatch.type === 'Color Group') {
+    return 2 + swatch.swatches.length;
+  } else if (swatch.type === 'Process' || swatch.type === 'Spot' || swatch.type === 'Global') {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+function chunkForObject(obj) {
+  const type = obj.type;
+  if (type === 'Color Group') {
+    return chunkForFolder(obj);
+  } else if (['Process', 'Spot', 'Global'].includes(type)) {
+    return chunkForColor(obj);
+  }
+}
+
+function chunkForColor(obj) {
+  const title = obj.name + '\0';
+  const titleLength = Buffer.from(struct.pack('>H', title.length / 2), 'binary');
+  const titleBuffer = Buffer.from(title, 'utf-16be');
+  const mode = Buffer.from(struct.pack('!4s', obj.data.mode.padEnd(4, ' ')), 'binary');
+  const values = Buffer.from(struct.pack(fmt[obj.data.mode], ...obj.data.values), 'binary');
+
+  const colorTypes = ['Global', 'Spot', 'Process'];
+  const colorType = colorTypes.indexOf(obj.type);
+  const colorTypeBuffer = Buffer.from(struct.pack('>h', colorType), 'binary');
+
+  const chunkSize = Buffer.from(struct.pack('>I', titleBuffer.length + mode.length + values.length + colorTypeBuffer.length), 'binary');
+  return Buffer.concat([Buffer.from([0x00, 0x01]), chunkSize, titleLength, titleBuffer, mode, values, colorTypeBuffer]);
+}
+
+function chunkForFolder(obj) {
+  const title = obj.name + '\0';
+  const titleLength = Buffer.from(struct.pack('>H', title.length / 2), 'binary');
+  const titleBuffer = Buffer.from(title, 'utf-16be');
+
+  const chunkSize = Buffer.from(struct.pack('>I', titleBuffer.length), 'binary');
+  const chunkHead = Buffer.from([0xC0, 0x01]);
+  const chunkBody = Buffer.concat([chunkSize, titleLength, titleBuffer]);
+
+  const chunk = Buffer.concat([chunkHead, chunkBody]);
+
+  const chunkTail = Buffer.from([0xC0, 0x02, 0x00, 0x00, 0x00, 0x00]);
+  const swatchChunks = obj.swatches.map(chunkForColor);
+  return Buffer.concat([chunk, ...swatchChunks, chunkTail]);
+}
+
+// Example usage:
+// const swatchData = parse("example.ase");
+// dump(swatchData, "output.ase");
+
