@@ -22,7 +22,7 @@ export async function GET() {
         const res = await readFile(`${dir_path}/${file}`);
         // console.log(res)
         parsed_ase.push({
-            file: file,
+            file: file.slice(0,file.lastIndexOf('.')),
             colors: parse(res)
         }
         );

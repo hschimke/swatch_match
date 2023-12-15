@@ -6,6 +6,7 @@
 
     let imageFiles: FileList;
     let statusMessage = "Please Select a File";
+    let button_disabled = false;
     let imageTag: HTMLImageElement;
     let canvasTag: HTMLCanvasElement;
     let show_colors: boolean = false;
@@ -16,6 +17,7 @@
 
     function handleClick() {
         show_colors = false;
+        button_disabled = true;
         if (!imageFiles || imageFiles.length == 0) {
             statusMessage = "Please Select an Image";
         } else {
@@ -51,6 +53,8 @@
             rgbs.push(rgb);
         }
 
+        // console.log(rgbs.length);
+
         const v_f = new Set();
         const rgb_filtered = rgbs.filter((v) => {
             const pred = `${v.r}|${v.g}|${v.b}`;
@@ -61,6 +65,7 @@
                 return false;
             }
         });
+
         // console.log(rgb_filtered.length);
 
         const rbgValues: Set<Color> = new Set(rgb_filtered);
@@ -84,6 +89,7 @@
         }
         show_colors = true;
         statusMessage = "";
+        button_disabled = false;
         // console.log(JSON.stringify(data));
     }
 
@@ -167,9 +173,9 @@
             target_color.g == converted_color.g &&
             target_color.b == converted_color.b
         ) {
-            console.log("color match");
+            // console.log("color match");
             color_distrance_array.push({
-                name: `${current_name}::${found_color.name}`,
+                name: `EXACT COLOR: ${current_name} - ${found_color.name}`,
                 color: converted_color,
                 distrance: 0,
             });
@@ -179,7 +185,7 @@
                 converted_color,
             );
             color_distrance_array.push({
-                name: `${current_name}::${found_color.name}`,
+                name: `${current_name} - ${found_color.name}`,
                 color: converted_color,
                 distrance: color_distrance,
             });
@@ -215,7 +221,7 @@
         accept=".png,.jpg,.jpeg,.bmp,.gif"
         bind:files={imageFiles}
     />
-    <button on:click={handleClick}>Process</button>
+    <button on:click={handleClick} disabled={button_disabled}>Process</button>
     <div>{statusMessage}</div>
 </form>
 
