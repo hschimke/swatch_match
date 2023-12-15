@@ -22,5 +22,9 @@
 	"type": "module",
 	"dependencies": {
 		"ase_parser": "file:../ase_parser"
+	},
+	"engines": {
+	  "npm": ">= 9.0.0",
+	  "node": ">=21.0.0"
 	}
 }
