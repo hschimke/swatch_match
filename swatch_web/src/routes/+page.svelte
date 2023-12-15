@@ -82,66 +82,47 @@
         // console.log(JSON.stringify(data));
     }
 
+    type ColorDistranceArray = Array<{
+        name: string;
+        color: Color;
+        distrance: number;
+    }>;
+
     function get_color_match(color: Color, data) {
         const found_colors = [];
 
-        const color_distrance_hold: Array<{
-            name: string;
-            color: Color;
-            distrance: number;
-        }> = [];
-
-        // let closest_color;
-        // let closest_color_distrance = Number.MAX_SAFE_INTEGER;
+        const color_distrance_hold: ColorDistranceArray = [];
 
         for (const ase_file of data) {
             const current_name = ase_file.file;
             // console.log(current_name)
             for (const colors of ase_file.colors) {
                 if (colors.type == "color") {
-                    const converted_color = convert_cmyk_rgb(
-                        colors.color.c,
-                        colors.color.m,
-                        colors.color.y,
-                        colors.color.k,
+                    handle_color(
+                        color,
+                        colors,
+                        current_name,
+                        color_distrance_hold,
                     );
-                    // console.log(JSON.stringify(converted_color));
-                    if (
-                        color.r == converted_color.r &&
-                        color.g == converted_color.g &&
-                        color.b == converted_color.b
-                    ) {
-                        console.log("color match");
-                        found_colors.push({
-                            name: `${current_name}::${colors.name}`,
-                            color: converted_color,
-                        });
-                    } else {
-                        const color_distrance = calculateCIEDE2000(
-                            color,
-                            converted_color,
-                        );
-                        color_distrance_hold.push( {
-                            name: `${current_name}::${colors.name}`,
-                            color: converted_color,
-                            distrance: color_distrance
-                        });
-                        // if (color_distrance < closest_color_distrance) {
-                        //     closest_color_distrance = color_distrance;
-                        //     closest_color = {
-                        //         name: `${current_name}::${colors.name}`,
-                        //         color: converted_color,
-                        //     };
-                        // }
+                } else if (colors.type == "group") {
+                    for (const color_group_entry of colors.entries) {
+                        if (color_group_entry.type == "color") {
+                            handle_color(
+                                color,
+                                color_group_entry,
+                                current_name,
+                                color_distrance_hold,
+                            );
+                        }
                     }
                 }
             }
         }
 
         // sort distrances
-        color_distrance_hold.sort((a,b) => {
-            return a.distrance - b.distrance
-        })
+        color_distrance_hold.sort((a, b) => {
+            return a.distrance - b.distrance;
+        });
 
         // add three closest
         found_colors.push(color_distrance_hold[0]);
@@ -153,6 +134,46 @@
         // console.log(closest_color_distrance);
         // found_colors.push(closest_color);
         return found_colors;
+    }
+
+    function handle_color(
+        target_color: Color,
+        found_color,
+        current_name: string,
+        color_distrance_array: ColorDistranceArray,
+    ) {
+        if (found_color.name.includes("=")) {
+            return;
+        }
+
+        const converted_color = convert_cmyk_rgb(
+            found_color.color.c,
+            found_color.color.m,
+            found_color.color.y,
+            found_color.color.k,
+        );
+        // console.log(JSON.stringify(converted_color));
+        if (
+            found_color.r == converted_color.r &&
+            found_color.g == converted_color.g &&
+            found_color.b == converted_color.b
+        ) {
+            console.log("color match");
+            found_colors.push({
+                name: `${current_name}::${found_color.name}`,
+                color: converted_color,
+            });
+        } else {
+            const color_distrance = calculateCIEDE2000(
+                target_color,
+                converted_color,
+            );
+            color_distrance_array.push({
+                name: `${current_name}::${found_color.name}`,
+                color: converted_color,
+                distrance: color_distrance,
+            });
+        }
     }
 
     function convert_cmyk_rgb(
