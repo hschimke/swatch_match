@@ -3,6 +3,7 @@
     import { calculateCIEDE2000 } from "$lib/perceptual_color_distrance";
     import type { AseColorEntry } from "adobe_swatch_exchange_parser";
     import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
+    import { quantization } from "$lib/color_filtering";
 
     let imageFiles: FileList;
     let statusMessage = "Please Select a File";
@@ -10,10 +11,11 @@
     let imageTag: HTMLImageElement;
     let canvasTag: HTMLCanvasElement;
     let show_colors: boolean = false;
-    let found_colors : Array<{
-        color: Color,
-        found_colors: Array<{name: string, color:Color}>
-    }>= [];
+    let found_colors: Array<{
+        color: Color;
+        found_colors: Array<{ name: string; color: Color }>;
+    }> = [];
+    let color_swatch_count = "0";
 
     function handleClick() {
         show_colors = false;
@@ -68,7 +70,20 @@
 
         // console.log(rgb_filtered.length);
 
-        const rbgValues: Set<Color> = new Set(rgb_filtered);
+        let reduced_colors;
+        if (color_swatch_count != "0") {
+            reduced_colors = quantization(
+                rgb_filtered,
+                0,
+                Number(color_swatch_count),
+            );
+        } else {
+            reduced_colors = rgb_filtered;
+        }
+
+        // console.log(reduced_colors.length);
+
+        const rbgValues: Set<Color> = new Set(reduced_colors);
         matchColors(rbgValues);
     }
 
@@ -77,7 +92,7 @@
         // console.log(colorValues);
         found_colors.length = 0;
         let payload = await fetch("/api/get_available_swatches");
-        let data = await payload.json() as AseParsedFilePayload;
+        let data = (await payload.json()) as AseParsedFilePayload;
         // for (const f of data) {
         //     console.log(f)
         // }
@@ -99,7 +114,7 @@
         distrance: number;
     }>;
 
-    function get_color_match(color: Color, data : AseParsedFilePayload) {
+    function get_color_match(color: Color, data: AseParsedFilePayload) {
         const located_colors = [];
 
         const color_distrance_hold: ColorDistranceArray = [];
@@ -115,7 +130,10 @@
                         current_name,
                         color_distrance_hold,
                     );
-                } else if (colors.type == "group" && typeof colors.entries != 'undefined')  {
+                } else if (
+                    colors.type == "group" &&
+                    typeof colors.entries != "undefined"
+                ) {
                     for (const color_group_entry of colors.entries) {
                         if (color_group_entry.type == "color") {
                             handle_color(
@@ -149,7 +167,7 @@
 
     function handle_color(
         target_color: Color,
-        found_color : AseColorEntry,
+        found_color: AseColorEntry,
         current_name: string,
         color_distrance_array: ColorDistranceArray,
     ) {
@@ -157,7 +175,7 @@
             return;
         }
 
-        if (typeof found_color.color == 'undefined') {
+        if (typeof found_color.color == "undefined") {
             return;
         }
 
@@ -221,6 +239,17 @@
         accept=".png,.jpg,.jpeg,.bmp,.gif"
         bind:files={imageFiles}
     />
+    <select bind:value={color_swatch_count}>
+        <option value="0">All</option>
+        <option value="1">2</option>
+        <option value="2">4</option>
+        <option value="3">8</option>
+        <option value="4">16</option>
+        <option value="5">32</option>
+        <option value="6">64</option>
+        <option value="7">128</option>
+        <option value="8">256</option>
+    </select>
     <button on:click={handleClick} disabled={button_disabled}>Process</button>
     <div>{statusMessage}</div>
 </form>
