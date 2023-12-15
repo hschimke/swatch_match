@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "prepare": "npm ci && tsc --build"
+    "prepare": "tsc --build"
   },
   "keywords": [],
   "author": "",
