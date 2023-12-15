@@ -1,13 +1,18 @@
 <script lang="ts">
     import type { Color } from "$lib";
     import { calculateCIEDE2000 } from "$lib/perceptual_color_distrance";
+    import type { AseColorEntry } from "ase_parser";
+    import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
 
     let imageFiles: FileList;
     let statusMessage = "Please Select a File";
     let imageTag: HTMLImageElement;
     let canvasTag: HTMLCanvasElement;
     let show_colors: boolean = false;
-    let found_colors = [];
+    let found_colors : Array<{
+        color: Color,
+        found_colors: Array<{name: string, color:Color}>
+    }>= [];
 
     function handleClick() {
         show_colors = false;
@@ -67,7 +72,7 @@
         // console.log(colorValues);
         found_colors.length = 0;
         let payload = await fetch("/api/get_available_swatches");
-        let data = await payload.json();
+        let data = await payload.json() as AseParsedFilePayload;
         // for (const f of data) {
         //     console.log(f)
         // }
@@ -88,8 +93,8 @@
         distrance: number;
     }>;
 
-    function get_color_match(color: Color, data) {
-        const found_colors = [];
+    function get_color_match(color: Color, data : AseParsedFilePayload) {
+        const located_colors = [];
 
         const color_distrance_hold: ColorDistranceArray = [];
 
@@ -104,7 +109,7 @@
                         current_name,
                         color_distrance_hold,
                     );
-                } else if (colors.type == "group") {
+                } else if (colors.type == "group" && typeof colors.entries != 'undefined')  {
                     for (const color_group_entry of colors.entries) {
                         if (color_group_entry.type == "color") {
                             handle_color(
@@ -125,24 +130,28 @@
         });
 
         // add three closest
-        found_colors.push(color_distrance_hold[0]);
-        found_colors.push(color_distrance_hold[1]);
-        found_colors.push(color_distrance_hold[2]);
-        found_colors.push(color_distrance_hold[4]);
+        located_colors.push(color_distrance_hold[0]);
+        located_colors.push(color_distrance_hold[1]);
+        located_colors.push(color_distrance_hold[2]);
+        located_colors.push(color_distrance_hold[4]);
 
         // console.log(closest_color);
         // console.log(closest_color_distrance);
         // found_colors.push(closest_color);
-        return found_colors;
+        return located_colors;
     }
 
     function handle_color(
         target_color: Color,
-        found_color,
+        found_color : AseColorEntry,
         current_name: string,
         color_distrance_array: ColorDistranceArray,
     ) {
         if (found_color.name.includes("=")) {
+            return;
+        }
+
+        if (typeof found_color.color == 'undefined') {
             return;
         }
 
@@ -154,14 +163,15 @@
         );
         // console.log(JSON.stringify(converted_color));
         if (
-            found_color.r == converted_color.r &&
-            found_color.g == converted_color.g &&
-            found_color.b == converted_color.b
+            target_color.r == converted_color.r &&
+            target_color.g == converted_color.g &&
+            target_color.b == converted_color.b
         ) {
             console.log("color match");
-            found_colors.push({
+            color_distrance_array.push({
                 name: `${current_name}::${found_color.name}`,
                 color: converted_color,
+                distrance: 0,
             });
         } else {
             const color_distrance = calculateCIEDE2000(
@@ -177,10 +187,10 @@
     }
 
     function convert_cmyk_rgb(
-        c: number,
-        m: number,
-        y: number,
-        k: number,
+        c: number = 0,
+        m: number = 0,
+        y: number = 0,
+        k: number = 0,
     ): Color {
         // Ensure values are in the range [0, 1]
         c = c / 100;

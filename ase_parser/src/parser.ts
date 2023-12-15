@@ -7,7 +7,7 @@ const ASE_BLOCK_TYPE_GROUP_START = 0xC001;
 const ASE_BLOCK_TYPE_GROUP_END = 0xC002;
 const ASE_COLOR_TYPES = ['global', 'spot', 'normal'];
 
-export function parse(buffer) {
+export function parse(buffer: Buffer) {
     assert(Buffer.isBuffer(buffer), 'The argument is not an instance of Buffer', TypeError);
     assert(buffer.readUInt32BE(0) === ASE_SIGNATURE, 'Invalid file signature: ASEF header expected');
     assert(buffer.readUInt16BE(4) === ASE_VERSION_MAJOR, 'Only version 1.0 of the ASE format is supported');
@@ -17,8 +17,8 @@ export function parse(buffer) {
 }
 
 // reads blocks from a buffer
-const readBlocks = (buffer, offset) => {
-    const result = [];
+function readBlocks(buffer: Buffer, offset: number): Array<AseColorEntry> {
+    const result: Array<AseColorEntry> = [];
 
     let length = buffer.readUInt32BE(8);
     let readOffset = offset;
@@ -28,10 +28,10 @@ const readBlocks = (buffer, offset) => {
     }
 
     return result;
-};
+}
 
 // reads a block from a buffer
-const readBlock = (buffer, offset, result) => {
+function readBlock(buffer: Buffer, offset: number, result: Array<AseColorEntry>): number {
     const type = buffer.readUInt16BE(offset);
 
     switch (type) {
@@ -45,6 +45,7 @@ const readBlock = (buffer, offset, result) => {
             break;
         case ASE_BLOCK_TYPE_GROUP_END:
             result.push({
+                name: '',
                 type: 'group-end'
             });
 
@@ -54,20 +55,20 @@ const readBlock = (buffer, offset, result) => {
     }
 
     return 6 + buffer.readUInt32BE(offset + 2);
-};
+}
 
 // reads a group start from a buffer
-const readGroupStart = (buffer, offset) => {
+function readGroupStart(buffer: Buffer, offset: number): AseColorEntry {
     const nameLength = buffer.readUInt16BE(offset);
 
     return {
         type: 'group-start',
         name: bufferToUTF16(buffer, offset + 2, nameLength).trim()
     };
-};
+}
 
 // reads a color entry from a buffer
-const readColorEntry = (buffer, offset) => {
+function readColorEntry(buffer: Buffer, offset: number): AseColorEntry {
     var nameLength = buffer.readUInt16BE(offset);
 
     return {
@@ -75,10 +76,10 @@ const readColorEntry = (buffer, offset) => {
         name: bufferToUTF16(buffer, offset + 2, nameLength).trim(),
         color: readColor(buffer, offset + 2 + nameLength * 2)
     };
-};
+}
 
 // reads a color from a buffer
-const readColor = (buffer, offset) => {
+function readColor(buffer: Buffer, offset: number) {
     const model = buffer.toString('utf8', offset, offset + 4).trim();
 
     switch (model) {
@@ -116,10 +117,10 @@ const readColor = (buffer, offset) => {
         default:
             throw new Error('Unsupported color model: ' + model + ' at offset ' + offset);
     }
-};
+}
 
 // converts a buffer to utf-16
-const bufferToUTF16 = (buffer, position, nameLength) => {
+function bufferToUTF16(buffer: { readUInt16BE: (arg0: any) => number; }, position: number, nameLength: number): string {
     let name = '';
     let index = 0;
 
@@ -132,30 +133,32 @@ const bufferToUTF16 = (buffer, position, nameLength) => {
     }
 
     return name;
-};
+}
 
 // asserts a condition or throws an error
-const assert = (condition, message, ErrorType = Error) => {
+function assert(condition: boolean, message: string | undefined, ErrorType = Error) {
     if (!condition) {
         throw new ErrorType(message);
     }
-};
+}
 
 // reduces groups into object keys
-const reduceGroups = (accumulated, item) => {
+function reduceGroups(accumulated: Array<AseColorEntry>, item: AseColorEntry) {
     const last = accumulated[accumulated.length - 1];
 
     if (last && last.type === 'group-start') {
         if (item.type === 'group-end') {
             last.type = 'group';
         } else {
-            if (item.color.model === 'RGB') {
-                item.color.hex = rgbToHex(item.color);
-            } else if (item.color.model === 'CMYK') {
-                item.color.hex = cmykToHex(item.color);
+            if (typeof item.color != 'undefined') {
+                if (item.color.model === 'RGB') {
+                    item.color.hex = rgbToHex(item.color as RGBColor);
+                } else if (item.color.model === 'CMYK') {
+                    item.color.hex = cmykToHex(item.color as CMYKColor);
+                }
             }
 
-            last.entries.push(item);
+            if (typeof last.entries != 'undefined') { last.entries.push(item); }
         }
     } else if (item.type === 'group-start') {
         item.entries = [];
@@ -166,18 +169,56 @@ const reduceGroups = (accumulated, item) => {
     }
 
     return accumulated;
-};
+}
 
 // converts rgb to hex
-const rgbToHex = ({ r, g, b }) => {
+function rgbToHex({ r, g, b }: RGBColor): HexColor {
     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-};
+}
 
 // converts cmyk to hex (without a color profile)
-const cmykToHex = ({ c, m, y, k }) => {
+function cmykToHex({ c, m, y, k }: CMYKColor): HexColor {
     return rgbToHex({
         r: Math.round(255 * (1 - c / 100) * (1 - k / 100)),
         g: Math.round(255 * (1 - m / 100) * (1 - k / 100)),
         b: Math.round(255 * (1 - y / 100) * (1 - k / 100))
     });
+}
+
+type HexColor = string;
+
+type RGBColor = {
+    r: number,
+    g: number,
+    b: number,
+};
+
+type CMYKColor = {
+    c: number,
+    m: number,
+    y: number,
+    k: number
+};
+
+export type AseColorEntry = {
+    type: string;
+    name: string;
+    color?:
+    {
+        model: string;
+        r?: number;
+        g?: number;
+        b?: number;
+        c?: number;
+        m?: number;
+        y?: number;
+        k?: number;
+        gray?: number;
+        lightness?: number;
+        a?: number;
+        type: string;
+        hex?: string;
+    }
+
+    entries?: Array<AseColorEntry>;
 };

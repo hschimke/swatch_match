@@ -2,10 +2,14 @@
   "name": "ase_parser",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "module": "main.js",
+  "main": "dist/index.js",
+  "module": "dist/main.js",
+  "types": "dist/main.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "prepare": "tsc --build"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +17,9 @@
   "dependencies": {
     "esm": "^3.2.25"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.10.4",
+    "typescript": "^5.3.3"
+  }
 }
