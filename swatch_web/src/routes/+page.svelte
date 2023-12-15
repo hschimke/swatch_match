@@ -57,7 +57,7 @@
                 return false;
             }
         });
-        console.log(rgb_filtered.length);
+        // console.log(rgb_filtered.length);
 
         const rbgValues: Set<Color> = new Set(rgb_filtered);
         matchColors(rbgValues);
@@ -74,7 +74,7 @@
         for (const color of colorValues) {
             found_colors.push({
                 color: color,
-                found_color: get_color_match(color, data),
+                found_colors: get_color_match(color, data),
             });
         }
         show_colors = true;
@@ -103,59 +103,57 @@
                         color.g == converted_color.g &&
                         color.b == converted_color.b
                     ) {
-                        // console.log('color match')
-                        found_colors.push(`${current_name}::${colors.name}`);
+                        console.log("color match");
+                        found_colors.push({
+                            name: `${current_name}::${colors.name}`,
+                            color: converted_color,
+                        });
                     } else {
-                        const color_distrance = calculate_color_distance(
+                        const color_distrance = calculateCIEDE2000(
                             color,
                             converted_color,
                         );
                         if (color_distrance < closest_color_distrance) {
                             closest_color_distrance = color_distrance;
-                            closest_color = `${current_name}::${colors.name}`;
+                            closest_color = {
+                                name: `${current_name}::${colors.name}`,
+                                color: converted_color,
+                            };
                         }
                     }
                 }
             }
         }
-        console.log(closest_color);
-        console.log(closest_color_distrance);
+        // console.log(closest_color);
+        // console.log(closest_color_distrance);
         found_colors.push(closest_color);
         return found_colors;
     }
 
-    function convert_cmyk_rgb(c, m, y, k): Color {
+    function convert_cmyk_rgb(
+        c: number,
+        m: number,
+        y: number,
+        k: number,
+    ): Color {
         // Ensure values are in the range [0, 1]
-        c = clamp(c);
-        m = clamp(m);
-        y = clamp(y);
-        k = clamp(k);
+        c = c / 100;
+        m = m / 100;
+        y = y / 100;
+        k = k / 100;
 
         // Convert CMYK to RGB
         const r = Math.round(255 * (1 - c) * (1 - k));
         const g = Math.round(255 * (1 - m) * (1 - k));
         const b = Math.round(255 * (1 - y) * (1 - k));
 
+        // console.log(`${c},${m},${y},${k} -> ${r},${g},${b}`)
         return { r, g, b };
     }
 
-    function rgbToHex(r, g, b) {
-        // Ensure values are in the range [0, 255]
-        r = clamp(r, 0, 255);
-        g = clamp(g, 0, 255);
-        b = clamp(b, 0, 255);
-
-        // Convert RGB to hex
-        const hexValue = ((r << 16) | (g << 8) | b)
-            .toString(16)
-            .padStart(6, "0");
-
-        return `#${hexValue.toLowerCase()}`;
-    }
-
     // Helper function to ensure values are in the range [0, 1]
-    function clamp(value) {
-        return Math.max(0, Math.min(value, 1));
+    function clamp(value: number, min: number = 0, max: number = 1): number {
+        return Math.max(min, Math.min(value, max));
     }
 
     function calculate_color_distance(color1: Color, color2: Color): number {
@@ -171,82 +169,93 @@
         return distance;
     }
 
-    function ciede2000(rgb1, rgb2) {
-  const lab1 = rgbToLab(rgb1);
-  const lab2 = rgbToLab(rgb2);
+    // althernate distrance calculations
+    //
+    //
+    function calculateCIEDE2000(color1:Color, color2:Color) {
+        const Lab1 = rgbToLab(color1);
+        const Lab2 = rgbToLab(color2);
 
-  const deltaL = lab2.L - lab1.L;
-  const avgL = (lab1.L + lab2.L) / 2;
-  const avgC = (lab1.C + lab2.C) / 2;
-  const deltaA = lab2.a - lab1.a;
-  const deltaB = lab2.b - lab1.b;
+        const kL = 1;
+        const kC = 1;
+        const kH = 1;
 
-  const avgH = Math.sqrt(Math.pow(deltaA, 2) + Math.pow(deltaB, 2) + Math.pow(avgC, 2));
-  const h1 = calculateLabH(lab1.a, lab1.b);
-  const h2 = calculateLabH(lab2.a, lab2.b);
-  const deltah = calculateDeltaH(h1, h2, avgC);
+        const deltaL = Lab2.L - Lab1.L;
+        const Lbar = (Lab1.L + Lab2.L) / 2;
 
-  const cieDE2000 = Math.sqrt(
-    Math.pow(deltaL, 2) +
-    Math.pow(deltaA, 2) +
-    Math.pow(deltaB, 2) +
-    Math.pow(deltah / (1 + 0.045 * avgC), 2)
-  );
+        const C1 = Math.sqrt(Lab1.a ** 2 + Lab1.b ** 2);
+        const C2 = Math.sqrt(Lab2.a ** 2 + Lab2.b ** 2);
+        const Cbar = (C1 + C2) / 2;
 
-  return cieDE2000;
-}
+        const a1Prime =
+            Lab1.a +
+            (Lab1.a / 2) * (1 - Math.sqrt(Cbar ** 7 / (Cbar ** 7 + 25 ** 7)));
+        const a2Prime =
+            Lab2.a +
+            (Lab2.a / 2) * (1 - Math.sqrt(Cbar ** 7 / (Cbar ** 7 + 25 ** 7)));
 
-function rgbToLab(rgb) {
-  const r = rgb.r / 255;
-  const g = rgb.g / 255;
-  let b = rgb.b / 255;
+        const C1Prime = Math.sqrt(a1Prime ** 2 + Lab1.b ** 2);
+        const C2Prime = Math.sqrt(a2Prime ** 2 + Lab2.b ** 2);
+        const CbarPrime = (C1Prime + C2Prime) / 2;
 
-  const x = 0.4124564 * linearize(r) + 0.3575761 * linearize(g) + 0.1804375 * linearize(b);
-  const y = 0.2126729 * linearize(r) + 0.7151522 * linearize(g) + 0.0721750 * linearize(b);
-  const z = 0.0193339 * linearize(r) + 0.1191920 * linearize(g) + 0.9503041 * linearize(b);
+        const deltaCPrime = C2Prime - C1Prime;
 
-  const xRef = 0.9642;
-  const yRef = 1.0000;
-  const zRef = 0.8249;
+        const h1Prime =
+            Math.atan2(Lab1.b, a1Prime) + (Lab1.b < 0 ? 2 * Math.PI : 0);
+        const h2Prime =
+            Math.atan2(Lab2.b, a2Prime) + (Lab2.b < 0 ? 2 * Math.PI : 0);
+        const deltahPrime = Math.abs(h1Prime - h2Prime);
 
-  const fx = pivot(x / xRef);
-  const fy = pivot(y / yRef);
-  const fz = pivot(z / zRef);
+        const deltaHPrime =
+            deltahPrime > Math.PI ? 2 * Math.PI - deltahPrime : deltahPrime;
 
-  const L = Math.max(0, 116 * fy - 16);
-  const a = (fx - fy) * 500;
-   b = (fy - fz) * 200;
+        const deltaE2000 = Math.sqrt(
+            (deltaL / (kL * 1)) ** 2 +
+                (deltaCPrime / (kC * 1)) ** 2 +
+                (deltaHPrime / (kH * 1)) ** 2,
+        );
 
-  const C = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-  const h = calculateLabH(a, b);
+        return deltaE2000;
+    }
 
-  return { L, a, b, C, h };
-}
+    function rgbToLab(rgb:Color) {
+        let r = rgb.r / 255;
+        let g = rgb.g / 255;
+        let b = rgb.b / 255;
 
-function calculateLabH(a, b) {
-  const h = (Math.atan2(b, a) * 180) / Math.PI;
-  return (h >= 0) ? h : h + 360;
-}
+        r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+        g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+        b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
 
-function calculateDeltaH(h1, h2, avgC) {
-  const deltah = Math.abs(h1 - h2);
-  if (deltah <= 180) {
-    return deltah;
-  } else if (h2 <= h1) {
-    return deltah - 360;
-  } else {
-    return deltah + 360;
-  }
-}
+        r *= 100;
+        g *= 100;
+        b *= 100;
 
-function linearize(value) {
-  return (value <= 0.04045) ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
-}
+        const X = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
+        const Y = r * 0.2126729 + g * 0.7151522 + b * 0.072175;
+        const Z = r * 0.0193339 + g * 0.119192 + b * 0.9503041;
 
-function pivot(value) {
-  const threshold = 0.008856;
-  return (value > threshold) ? Math.pow(value, 1 / 3) : (903.3 * value + 16) / 116;
-}
+        const epsilon = 0.008856;
+        const kappa = 903.3;
+
+        const Xr = 95.047;
+        const Yr = 100.0;
+        const Zr = 108.883;
+
+        const xr = X / Xr;
+        const yr = Y / Yr;
+        const zr = Z / Zr;
+
+        const fx = xr > epsilon ? Math.pow(xr, 1 / 3) : (kappa * xr + 16) / 116;
+        const fy = yr > epsilon ? Math.pow(yr, 1 / 3) : (kappa * yr + 16) / 116;
+        const fz = zr > epsilon ? Math.pow(zr, 1 / 3) : (kappa * zr + 16) / 116;
+
+        const L = Math.max(0, 116 * fy - 16);
+        const a = (fx - fy) * 500;
+         b = (fy - fz) * 200;
+
+        return { L, a, b };
+    }
 </script>
 
 <h1>Welcome to the Off-Kolor Montana-Cans color matcher</h1>
@@ -283,7 +292,18 @@ function pivot(value) {
                         </div>
                     </td>
                     <td>
-                        {JSON.stringify(color.found_color)}
+                        {#each color.found_colors as fnd_color}
+                            <div style="clear:left;">
+                                <div
+                                    style="height: 50px; width: 50px; display: block; background-color: rgb({fnd_color
+                                        .color.r},{fnd_color.color.g},{fnd_color
+                                        .color.b}); float: left;"
+                                ></div>
+                                <div style="float:left; height=50px;">
+                                    {fnd_color.name}
+                                </div>
+                            </div>
+                        {/each}
                     </td>
                 </tr>
             {/each}
