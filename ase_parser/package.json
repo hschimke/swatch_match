@@ -1,7 +1,8 @@
 {
-  "name": "ase_parser",
+  "name": "adobe_swatch_exchange_parser",
   "version": "1.0.0",
-  "description": "",
+  "repository": "https://github.com/hschimke/swatch_match/ase_parser",
+  "description": "Adobe Swatch Exchange parser in typescript.",
   "main": "dist/index.js",
   "module": "dist/main.js",
   "types": "dist/main.d.ts",
@@ -11,9 +12,9 @@
     "clean": "tsc --build --clean",
     "prepare": "tsc --build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["ase", "Adobe Swatch Exchange"],
+  "author": "Henry Schimke",
+  "license": "MIT",
   "dependencies": {
     "esm": "^3.2.25"
   },

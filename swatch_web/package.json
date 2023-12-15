@@ -23,7 +23,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"ase_parser": "file:../ase_parser"
+		"adobe_swatch_exchange_parser": "^1.0.0"
 	},
 	"engines": {
 		"npm": ">= 9.0.0",
