@@ -2,8 +2,8 @@ export const prerender = true;
 
 import { error, json } from '@sveltejs/kit';
 import { readdir, readFile } from 'fs/promises';
-import { parse } from 'ase_parser';
-import type { AseColorEntry } from 'ase_parser';
+import { parse } from 'adobe_swatch_exchange_parser';
+import type { AseColorEntry } from 'adobe_swatch_exchange_parser';
 
 
 const dir_path = 'static/DIGITAL COLOR SWATCHES for Adobe';

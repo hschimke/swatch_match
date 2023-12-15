@@ -1,9 +1,9 @@
 {
   "name": "adobe_swatch_exchange_parser",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "repository": "https://github.com/hschimke/swatch_match/ase_parser",
   "description": "Adobe Swatch Exchange parser in typescript.",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "module": "dist/main.js",
   "types": "dist/main.d.ts",
   "scripts": {

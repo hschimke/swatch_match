@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Color } from "$lib";
     import { calculateCIEDE2000 } from "$lib/perceptual_color_distrance";
-    import type { AseColorEntry } from "ase_parser";
+    import type { AseColorEntry } from "adobe_swatch_exchange_parser";
     import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
 
     let imageFiles: FileList;
