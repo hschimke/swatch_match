@@ -261,7 +261,6 @@
     id="ImageTag"
     bind:this={imageTag}
     height="200"
-    width="300"
     alt="Select a File"
 />
 
