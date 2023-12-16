@@ -35,7 +35,7 @@ function findBiggestColorRange(rgbValues: Array<Color>): "r" | "g" | "b" {
     }
 }
 
-export function quantization(rgbValues: Color[], depth: number = 0, max_depth: number = MAX_DEPTH) : Array<Color> {
+export function quantization(rgbValues: Color[], depth: number = 0, max_depth: number = MAX_DEPTH): Array<Color> {
     if (depth === max_depth || rgbValues.length === 0) {
         const color = rgbValues.reduce(
             (prev, curr) => {

@@ -4,3 +4,11 @@ export type Color = {
     g: number;
     b: number;
 };
+
+export type LABColor = {
+    L: number;
+    a: number;
+    b: number;
+};
+
+export type ColorDistance = number;

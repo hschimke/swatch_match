@@ -1,6 +1,6 @@
-import type { Color } from "$lib";
+import type { Color, ColorDistance } from "$lib";
 
-export function calculate_color_distance(color1: Color, color2: Color): number {
+export function calculate_color_distance(color1: Color, color2: Color): ColorDistance {
     // Extract RGB values from each color
     const { r: r1, g: g1, b: b1 } = color1;
     const { r: r2, g: g2, b: b2 } = color2;

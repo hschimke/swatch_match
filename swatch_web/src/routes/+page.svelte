@@ -71,7 +71,7 @@
         // console.log(rgb_filtered.length);
 
         let reduced_colors;
-        if (color_swatch_count != "0") {
+        if (color_swatch_count != "0" && color_swatch_count != "-1") {
             reduced_colors = quantization(
                 rgb_filtered,
                 0,
@@ -102,6 +102,29 @@
                 found_colors: get_color_match(color, data),
             });
         }
+
+        // group the colors if that's what the user wants
+        if (color_swatch_count == "-1") {
+            statusMessage = "grouping colors";
+            const color_matched_set = new Set();
+            const filtered_found_colors = found_colors.filter((fc) => {
+                const color_names: string[] = [];
+                for (const c of fc.found_colors) {
+                    color_names.push(c.name);
+                }
+                const color_name_set = color_names.join("|");
+                // console.log( color_matched_set );
+                if (!color_matched_set.has(color_name_set)) {
+                    color_matched_set.add(color_name_set);
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+            // console.log(found_colors.length, filtered_found_colors.length)
+            found_colors = filtered_found_colors;
+        }
+
         show_colors = true;
         statusMessage = "";
         button_disabled = false;
@@ -157,7 +180,7 @@
         located_colors.push(color_distrance_hold[0]);
         located_colors.push(color_distrance_hold[1]);
         located_colors.push(color_distrance_hold[2]);
-        located_colors.push(color_distrance_hold[4]);
+        // located_colors.push(color_distrance_hold[4]);
 
         // console.log(closest_color);
         // console.log(closest_color_distrance);
@@ -232,7 +255,7 @@
     }
 </script>
 
-<h1>Welcome to the Off-Kolor Montana-Cans color matcher</h1>
+<h1>Off-Kolor Montana-Cans color matcher</h1>
 <form>
     <input
         type="file"
@@ -240,6 +263,7 @@
         bind:files={imageFiles}
     />
     <select bind:value={color_swatch_count}>
+        <option value="-1">Group</option>
         <option value="0">All</option>
         <option value="1">2</option>
         <option value="2">4</option>
@@ -251,18 +275,24 @@
         <option value="8">256</option>
     </select>
     <button on:click={handleClick} disabled={button_disabled}>Process</button>
-    <div>{statusMessage}</div>
 </form>
 
-<img bind:this={imageTag} width="200" alt="Uploaded data" />
-<canvas bind:this={canvasTag} id="cvs" hidden={true} />
+<img
+    id="ImageTag"
+    bind:this={imageTag}
+    height="200"
+    width="300"
+    alt="Select a File"
+/>
+
+<div id="StatusMessage">{statusMessage}</div>
 
 {#if show_colors}
-    <table>
+    <table id="ResultTable">
         <thead>
             <tr>
                 <td>Color</td>
-                <td>Closest Match</td>
+                <td>Closest Matches</td>
             </tr>
         </thead>
         <tbody>
@@ -272,9 +302,7 @@
                         <div
                             style="height: 50px; width: 50px; display: block; background-color: rgb({color
                                 .color.r},{color.color.g},{color.color.b});"
-                        >
-                            <!--rgb({color.color.r},{color.color.g},{color.color.b})-->
-                        </div>
+                        ></div>
                     </td>
                     <td>
                         {#each color.found_colors as fnd_color}
@@ -284,7 +312,9 @@
                                         .color.r},{fnd_color.color.g},{fnd_color
                                         .color.b}); float: left;"
                                 ></div>
-                                <div style="float:left; height=50px;">
+                                <div
+                                    style="float:left; height=50px; line-height: 50px; text-allign:center; margin-left: 5px;"
+                                >
                                     {fnd_color.name}
                                 </div>
                             </div>
@@ -295,3 +325,16 @@
         </tbody>
     </table>
 {/if}
+
+<canvas bind:this={canvasTag} id="cvs" hidden={true} />
+
+<style>
+    form {
+        padding-bottom: 10px;
+        display: block;
+    }
+
+    #StatusMessage {
+        padding-bottom: 10px;
+    }
+</style>

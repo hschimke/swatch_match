@@ -1,6 +1,6 @@
-import type { Color } from "$lib";
+import type { Color, ColorDistance, LABColor } from "$lib";
 
-export function calculateCIEDE2000(color1: Color, color2: Color) {
+export function calculateCIEDE2000(color1: Color, color2: Color): ColorDistance {
     const Lab1 = rgbToLab(color1);
     const Lab2 = rgbToLab(color2);
 
@@ -46,7 +46,7 @@ export function calculateCIEDE2000(color1: Color, color2: Color) {
     return deltaE2000;
 }
 
-function rgbToLab(rgb: Color) {
+function rgbToLab(rgb: Color): LABColor {
     let r = rgb.r / 255;
     let g = rgb.g / 255;
     let b = rgb.b / 255;
