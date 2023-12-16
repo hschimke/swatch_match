@@ -5,6 +5,7 @@
     import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
     import { quantization } from "$lib/color_filtering";
     import { convert_cmyk_rgb } from "$lib/cmyk_to_rgb_conversion";
+    import { external_color_diff } from "$lib/external_color_diff";
 
     let imageFiles: FileList;
     let statusMessage = "Please Select a File";
@@ -222,7 +223,7 @@
                 distrance: 0,
             });
         } else {
-            const color_distrance = calculateCIEDE2000(
+            const color_distrance = external_color_diff(
                 target_color,
                 converted_color,
             );
@@ -257,12 +258,7 @@
     <button on:click={handleClick} disabled={button_disabled}>Process</button>
 </form>
 
-<img
-    id="ImageTag"
-    bind:this={imageTag}
-    height="200"
-    alt="Select a File"
-/>
+<img id="ImageTag" bind:this={imageTag} height="200" alt="Select a File" />
 
 <div id="StatusMessage">{statusMessage}</div>
 

@@ -23,7 +23,9 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"adobe_swatch_exchange_parser": "^1.0.2"
+		"@types/color-diff": "^1.2.5",
+		"adobe_swatch_exchange_parser": "^1.0.2",
+		"color-diff": "^1.4.0"
 	},
 	"engines": {
 		"npm": ">= 9.0.0",
