@@ -12,3 +12,11 @@ export type LABColor = {
 };
 
 export type ColorDistance = number;
+
+export type ColorDistranceArrayElement = {
+    name: string;
+    color: Color;
+    distance: number;
+};
+
+export type ColorDistranceArray = Array<ColorDistranceArrayElement>;

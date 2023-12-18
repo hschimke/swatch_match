@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Color } from "$lib";
+    import type { Color, ColorDistranceArray } from "$lib";
     import { calculateCIEDE2000 } from "$lib/perceptual_color_distrance";
     import type { AseColorEntry } from "adobe_swatch_exchange_parser";
     import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
@@ -34,7 +34,7 @@
         }
     }
 
-    function parseImage(image: HTMLImageElement) {
+    async function parseImage(image: HTMLImageElement) {
         statusMessage = `Analyzing image`;
         const canvas = canvasTag;
         canvas.width = image.width;
@@ -85,11 +85,11 @@
 
         // console.log(reduced_colors.length);
 
-        const rbgValues: Set<Color> = new Set(reduced_colors);
+        const rbgValues = reduced_colors;
         matchColors(rbgValues);
     }
 
-    async function matchColors(colorValues: Set<Color>) {
+    async function matchColors(colorValues: Array<Color>) {
         statusMessage = `Matching Colors`;
         // console.log(colorValues);
         found_colors.length = 0;
@@ -98,11 +98,17 @@
         // for (const f of data) {
         //     console.log(f)
         // }
+        // let color_pos = 0;
+        // const len = colorValues.size;
         for (const color of colorValues) {
             found_colors.push({
                 color: color,
-                found_colors: get_color_match(color, data),
+                found_colors: await get_color_match(color, data),
             });
+            // color_pos += 1;
+
+            // console.log(`Matching Colors ${(color_pos / len) * 100}%`);
+            // statusMessage = `Matching Colors ${(color_pos / len) * 100}%`;
         }
 
         // group the colors if that's what the user wants
@@ -133,13 +139,7 @@
         // console.log(JSON.stringify(data));
     }
 
-    type ColorDistranceArray = Array<{
-        name: string;
-        color: Color;
-        distrance: number;
-    }>;
-
-    function get_color_match(color: Color, data: AseParsedFilePayload) {
+    async function get_color_match(color: Color, data: AseParsedFilePayload) {
         const located_colors = [];
 
         const color_distrance_hold: ColorDistranceArray = [];
@@ -175,7 +175,7 @@
 
         // sort distrances
         color_distrance_hold.sort((a, b) => {
-            return a.distrance - b.distrance;
+            return a.distance - b.distance;
         });
 
         // add three closest
@@ -220,7 +220,7 @@
             color_distrance_array.push({
                 name: `EXACT COLOR: ${current_name} - ${found_color.name}`,
                 color: converted_color,
-                distrance: 0,
+                distance: 0,
             });
         } else {
             const color_distrance = external_color_diff(
@@ -230,7 +230,7 @@
             color_distrance_array.push({
                 name: `${current_name} - ${found_color.name}`,
                 color: converted_color,
-                distrance: color_distrance,
+                distance: color_distrance,
             });
         }
     }
