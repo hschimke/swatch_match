@@ -179,10 +179,11 @@
         });
 
         // add three closest
-        located_colors.push(color_distrance_hold[0]);
-        located_colors.push(color_distrance_hold[1]);
-        located_colors.push(color_distrance_hold[2]);
-        // located_colors.push(color_distrance_hold[4]);
+        located_colors.push(
+            color_distrance_hold[0],
+            color_distrance_hold[1],
+            color_distrance_hold[2],
+        );
 
         // console.log(closest_color);
         // console.log(closest_color_distrance);
