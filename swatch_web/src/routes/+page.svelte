@@ -276,21 +276,21 @@
                 <tr>
                     <td>
                         <div
-                            style="height: 50px; width: 50px; display: block; background-color: rgb({color
-                                .color.r},{color.color.g},{color.color.b});"
+                            style="background-color: rgb({color.color.r},{color
+                                .color.g},{color.color.b});"
+                            class="colorBlock"
                         ></div>
                     </td>
                     <td>
                         {#each color.found_colors as fnd_color}
-                            <div style="clear:left;">
+                            <div class="singleColorMatchLine">
                                 <div
-                                    style="height: 50px; width: 50px; display: block; background-color: rgb({fnd_color
+                                    style="background-color: rgb({fnd_color
                                         .color.r},{fnd_color.color.g},{fnd_color
                                         .color.b}); float: left;"
+                                    class="colorBlock"
                                 ></div>
-                                <div
-                                    style="float:left; height=50px; line-height: 50px; text-allign:center; margin-left: 5px;"
-                                >
+                                <div class="colorMatchName">
                                     {fnd_color.name}
                                 </div>
                             </div>
@@ -312,5 +312,23 @@
 
     #StatusMessage {
         padding-bottom: 10px;
+    }
+
+    .colorBlock {
+        height: 50px;
+        width: 50px;
+        display: block;
+    }
+
+    .colorMatchName {
+        float: left;
+        height: 50px;
+        line-height: 50px;
+        text-align: center;
+        margin-left: 5px;
+    }
+
+    .singleColorMatchLine {
+        clear: left;
     }
 </style>
