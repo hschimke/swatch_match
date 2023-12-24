@@ -1,11 +1,17 @@
 <script lang="ts">
-    import type { Color, ColorDistranceArray } from "$lib";
+    import type {
+        AseParsedFilePayload,
+        Color,
+        ColorDistranceArray,
+    } from "$lib";
     import { calculateCIEDE2000 } from "$lib/perceptual_color_distrance";
     import type { AseColorEntry } from "adobe_swatch_exchange_parser";
-    import type { AseParsedFilePayload } from "./api/get_available_swatches/+server";
     import { quantization } from "$lib/color_filtering";
     import { convert_cmyk_rgb } from "$lib/cmyk_to_rgb_conversion";
     import { external_color_diff } from "$lib/external_color_diff";
+
+    /** @type {import('./$types').PageData} */
+    export let data: AseParsedFilePayload;
 
     let imageFiles: FileList;
     let statusMessage = "Please Select a File";
@@ -93,8 +99,8 @@
         statusMessage = `Matching Colors`;
         // console.log(colorValues);
         found_colors.length = 0;
-        let payload = await fetch("/api/get_available_swatches");
-        let data = (await payload.json()) as AseParsedFilePayload;
+        // let payload = await fetch("/api/get_available_swatches");
+        // let data = (await payload.json()) as AseParsedFilePayload;
         // for (const f of data) {
         //     console.log(f)
         // }
@@ -144,7 +150,7 @@
 
         const color_distrance_hold: ColorDistranceArray = [];
 
-        for (const ase_file of data) {
+        for (const ase_file of data.ase_array) {
             const current_name = ase_file.file;
             // console.log(current_name)
             for (const colors of ase_file.colors) {

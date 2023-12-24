@@ -1,3 +1,5 @@
+import type { AseColorEntry } from "adobe_swatch_exchange_parser";
+
 // place files you want to import through the `$lib` alias in this folder.
 export type Color = {
     r: number;
@@ -20,3 +22,10 @@ export type ColorDistranceArrayElement = {
 };
 
 export type ColorDistranceArray = Array<ColorDistranceArrayElement>;
+
+export type AseParsedFilePayload = {
+    ase_array: Array<{
+        file: string;
+        colors: Array<AseColorEntry>
+    }>
+};
